@@ -91,7 +91,7 @@ def run_full_analysis(df):
     plt.pie(rating_dist, labels=rating_dist.index, autopct='%1.1f%%', startangle=140,
             colors=sns.color_palette('YlOrRd', len(rating_dist)))
     plt.title('Overall Distribution of Star Ratings', fontsize=16, fontweight='bold')
-    plt.ylabel('') # Hides the 'Star_rating' label on the side
+    plt.ylabel('')
     plt.show()
 
     # --- 8. Analysis: Average Star Rating per Genre ---
@@ -132,37 +132,30 @@ def check_missing_data(df):
     print("--- Starting Data Validation for Missing Values ---")
     print("---" * 15)
 
-    # --- Remove rows where 'Title' is missing for this check ---
     initial_rows = len(df)
     df.dropna(subset=['Title'], inplace=True)
     rows_removed = initial_rows - len(df)
     if rows_removed > 0:
         print(f"Note: Removed {rows_removed} row(s) with a missing 'Title' for this validation.")
 
-    # --- Check for Missing Data ---
     missing_data_counts = df.isnull().sum()
     total_missing = missing_data_counts.sum()
 
-    # --- Report the Findings ---
     if total_missing == 0:
         print("\n✅ Success: No missing data found in the core columns!")
     else:
         print(f"\n⚠️ Alert: Found a total of {total_missing} missing value(s) in the file.")
         print("-------------------------------------------------")
         print("Missing Data Report (per column):")
-        columns_with_missing_data = missing_data_counts[missing_data_counts > 0]
-        print(columns_with_missing_data)
+        print(missing_data_counts[missing_data_counts > 0])
         print("-------------------------------------------------")
 
-        # --- Visual Representation ---
         print("\nGenerating visual report of missing data by genre...")
         try:
-            # We need to re-select columns for this specific visualization
             cols_to_check = ['Book_category', 'Star_rating', 'Price', 'Quantity', 'Issue_Date']
             missing_by_genre = df.groupby('Book_category')[cols_to_check].apply(lambda x: x.isnull().sum()).reset_index()
             missing_by_genre = missing_by_genre.melt(id_vars='Book_category', var_name='Column', value_name='Missing_Count')
             missing_by_genre = missing_by_genre[missing_by_genre['Missing_Count'] > 0]
-
             if not missing_by_genre.empty:
                 plt.figure(figsize=(12, 8))
                 sns.barplot(data=missing_by_genre, x='Missing_Count', y='Book_category', hue='Column', palette='viridis', dodge=True)
@@ -176,20 +169,57 @@ def check_missing_data(df):
         except Exception as e:
             print(f"Could not generate visual report. Error: {e}")
 
-        # --- Report books with missing data in table format ---
         print("\n📖 Books with missing data:")
         missing_rows = df[df.isnull().any(axis=1)]
         if not missing_rows.empty:
             display(missing_rows)
         else:
             print("No rows with missing data to display.")
-
     print("\n--- Data validation complete. ---")
+
+
+def generate_financial_dashboard(df):
+    """
+    Analyzes the financial investment in the book collection based on the
+    provided DataFrame and generates a visual dashboard.
+    """
+    print("\n" + "---" * 15)
+    print("--- Generating Collection Financial Dashboard ---")
+    print("---" * 15)
+
+    # --- 1. Feature Engineering: Calculate Total Value ---
+    # Create a new column 'Total_Value' by multiplying the price by the quantity.
+    # We use .copy() to avoid SettingWithCopyWarning
+    df_financial = df.copy()
+    df_financial['Total_Value'] = df_financial['Price'] * df_financial['Quantity']
+    print("Calculated 'Total_Value' for each book (Price * Quantity).")
+
+    # --- 2. Data Aggregation ---
+    # Group by category and sum the 'Total_Value' for each.
+    category_financials = df_financial.groupby('Book_category')['Total_Value'].sum().sort_values(ascending=False)
+    print("Aggregated total financial value by book category.")
+
+    # --- 3. Generate and Save Visualization ---
+    plt.figure(figsize=(12, 14))
+    sns.barplot(y=category_financials.index, x=category_financials.values, orient='h', palette='magma')
+    plt.suptitle('Total Financial Value of Inventory by Category', fontsize=18)
+    total_collection_value = category_financials.sum()
+    plt.figtext(0.5, 0.94, f'Total Collection Value: ${total_collection_value:,.2f}',
+                ha='center', fontsize=14, style='italic')
+    plt.xlabel('Total Value ($)', fontsize=12)
+    plt.ylabel('Book Category', fontsize=12)
+    plt.yticks(fontsize=10)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+    # Save the figure to a file
+    output_filename = 'collection_financial_dashboard.png'
+    plt.savefig(output_filename)
+    plt.show()
+    print(f"\n--- Dashboard saved as '{output_filename}'! ---")
 
 
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == '__main__':
-    # Use the specified file path
     file_path = '/content/newmergeddataset.csv'
 
     if not os.path.exists(file_path):
@@ -198,10 +228,7 @@ if __name__ == '__main__':
     else:
         try:
             # --- Step 1: Load and Clean the Data ONCE ---
-            # The CSV has a malformed header. We skip the first row and assign names manually.
             df_raw = pd.read_csv(file_path, header=None, skiprows=1)
-
-            # Manually define the correct column headers for your specific file
             correct_columns = [
                 'Title', 'Book_category', 'Star_rating', 'Price', 'Stock_availability',
                 'Quantity', 'Source_File', 'col8', 'col9', 'col10', 'col11',
@@ -209,8 +236,6 @@ if __name__ == '__main__':
                 'Return_Date', 'Random_Book_Sum'
             ]
             df_raw.columns = correct_columns
-
-            # Select and clean only the columns needed for the full analysis
             df_main = df_raw[['Title', 'Book_category', 'Star_rating', 'Price', 'Quantity', 'Issue_Date']].copy()
 
             print(f"✅ File '{os.path.basename(file_path)}' read successfully. Cleaning data...")
@@ -225,11 +250,13 @@ if __name__ == '__main__':
             print("✅ Data cleaning complete.")
 
             # --- Step 2: Run the Main Analysis ---
-            # We pass a copy so any changes in one function don't affect the other
             run_full_analysis(df_main.copy())
 
-            # --- Step 3: Run the Missing Data Check AFTER the main analysis ---
+            # --- Step 3: Run the Missing Data Check ---
             check_missing_data(df_main.copy())
+
+            # --- Step 4: Run the Financial Dashboard Analysis (NEW) ---
+            generate_financial_dashboard(df_main.copy())
 
         except Exception as e:
             print(f"An unexpected error occurred during the process: {e}")
