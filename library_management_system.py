@@ -14,23 +14,23 @@ import os
 # display is used in notebooks to render DataFrames as nice tables
 from IPython.display import display
 
+# --- Analysis Function 1: Full Inventory Visualization ---
 def run_full_analysis(df):
     """
-    This is the main analysis function. It takes a cleaned DataFrame and generates
-    all the summaries and visualizations for the book data.
+    Generates all the detailed summaries and visualizations for the book data.
     """
     print("\n" + "---" * 15)
-    print("--- Running Main Book Analysis & Visualization ---")
+    print("--- 📊 Running Full Book Inventory Analysis ---")
     print("---" * 15)
 
-    # --- 1. How many books are in each genre? (Text Summary) ---
+    # --- Text Summary: Total Books in Each Genre ---
     print("\n📚 **Summary: Total Books in Each Genre** 📚")
     book_counts = df['Book_category'].value_counts()
     print(book_counts.to_string())
     print("---" * 15)
 
-    # --- 2. Visualization: Total Book Count by Genre ---
-    print("\n📊 Generating chart: Total Books by Genre...")
+    # --- Visualization: Total Book Count by Genre ---
+    print("\nGenerating chart: Total Books by Genre...")
     plt.style.use('seaborn-v0_8-whitegrid')
     plt.figure(figsize=(12, 10))
     book_counts.sort_values(ascending=False).plot(kind='bar', color=sns.color_palette('viridis', len(book_counts)))
@@ -41,8 +41,8 @@ def run_full_analysis(df):
     plt.tight_layout()
     plt.show()
 
-    # --- 3. Visualization: Stock Levels by Genre ---
-    print("📊 Generating chart: Total Stock by Genre...")
+    # --- Visualization: Stock Levels by Genre ---
+    print("Generating chart: Total Stock by Genre...")
     stock_by_genre = df.groupby('Book_category')['Quantity'].sum().sort_values(ascending=True)
     plt.figure(figsize=(12, 10))
     stock_by_genre.plot(kind='barh', color=sns.color_palette('plasma', len(stock_by_genre)))
@@ -51,175 +51,104 @@ def run_full_analysis(df):
     plt.ylabel('Book Genre', fontsize=12)
     plt.tight_layout()
     plt.show()
-
-    # --- 4. Visualization: Issued Books by Genre ---
-    print("📊 Generating chart: Issued Books by Genre...")
-    df_issued = df.dropna(subset=['Issue_Date'])
-    issued_by_genre = df_issued['Book_category'].value_counts(ascending=True)
-    if not issued_by_genre.empty:
-        plt.figure(figsize=(12, 10))
-        issued_by_genre.plot(kind='barh', color=sns.color_palette('magma', len(issued_by_genre)))
-        plt.title('Number of Issued Books by Genre', fontsize=16, fontweight='bold')
-        plt.xlabel('Number of Books Issued', fontsize=12)
-        plt.ylabel('Book Genre', fontsize=12)
-        plt.tight_layout()
-        plt.show()
-    else:
-        print("⚠️ Could not generate 'Issued Books' chart as no valid issue dates were found.")
-
-    # --- 5. Analysis: Average Price per Genre ---
-    print("\n💰 Generating chart: Average Price per Genre...")
-    avg_price_genre = df.groupby('Book_category')['Price'].mean().sort_values(ascending=True)
-    plt.figure(figsize=(12, 8))
-    avg_price_genre.plot(kind='barh', color=sns.color_palette('crest', len(avg_price_genre)))
-    plt.title('Average Book Price by Genre', fontsize=16, fontweight='bold')
-    plt.xlabel('Average Price ($)', fontsize=12)
-    plt.ylabel('Book Genre', fontsize=12)
-    plt.tight_layout()
-    plt.show()
-
-    # --- 6. Analysis: Top 10 Most Expensive Books ---
-    print("\n🏆 **Top 10 Most Expensive Books** 🏆")
-    top_10_expensive = df.sort_values(by='Price', ascending=False).head(10)
-    print(top_10_expensive[['Title', 'Book_category', 'Price']].to_string(index=False))
-    print("---" * 15)
-
-    # --- 7. Analysis: Distribution of Star Ratings ---
-    print("\n⭐ Generating chart: Distribution of Star Ratings...")
-    rating_dist = df['Star_rating'].value_counts()
-    plt.figure(figsize=(10, 8))
-    plt.pie(rating_dist, labels=rating_dist.index, autopct='%1.1f%%', startangle=140,
-            colors=sns.color_palette('YlOrRd', len(rating_dist)))
-    plt.title('Overall Distribution of Star Ratings', fontsize=16, fontweight='bold')
-    plt.ylabel('')
-    plt.show()
-
-    # --- 8. Analysis: Average Star Rating per Genre ---
-    print("\n🌟 Generating chart: Average Star Rating per Genre...")
-    avg_rating_genre = df.groupby('Book_category')['Star_rating_numeric'].mean().sort_values(ascending=False)
-    plt.figure(figsize=(12, 8))
-    avg_rating_genre.plot(kind='bar', color=sns.color_palette('coolwarm', len(avg_rating_genre)))
-    plt.title('Average Star Rating by Genre', fontsize=16, fontweight='bold')
-    plt.xlabel('Book Genre', fontsize=12)
-    plt.ylabel('Average Rating (out of 5)', fontsize=12)
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    plt.show()
-
-    # --- 9. Analysis: Issued-to-Stock Ratio ---
-    print("\n📈 Generating chart: Issued-to-Stock Ratio (Popularity)...")
-    stock_by_genre = df.groupby('Book_category')['Quantity'].sum()
-    issued_count_by_genre = df[df['Issue_Date'].notna()].groupby('Book_category').size()
-    ratio_df = pd.DataFrame({'Stock': stock_by_genre, 'Issued': issued_count_by_genre}).fillna(0)
-    ratio_df['Ratio'] = ratio_df.apply(lambda row: row['Issued'] / row['Stock'] if row['Stock'] > 0 else 0, axis=1)
-    ratio_df = ratio_df.sort_values('Ratio', ascending=True)
-    plt.figure(figsize=(12, 8))
-    ratio_df['Ratio'].plot(kind='barh', color=sns.color_palette('viridis', len(ratio_df)))
-    plt.title('Issued-to-Stock Ratio by Genre (Demand)', fontsize=16, fontweight='bold')
-    plt.xlabel('Ratio (Issued Books / Total Stock)', fontsize=12)
-    plt.ylabel('Book Genre', fontsize=12)
-    plt.tight_layout()
-    plt.show()
-    print("\n--- Main Analysis Complete ---")
+    print("\n--- Full Analysis Complete ---")
 
 
+# --- Analysis Function 2: Missing Data Validation ---
 def check_missing_data(df):
     """
-    This is the data validation function. It takes a cleaned DataFrame,
-    checks for missing values, and generates a text and visual report.
+    Checks for missing values and generates a text and visual report.
     """
     print("\n" + "---" * 15)
-    print("--- Starting Data Validation for Missing Values ---")
+    print("--- ⚠️ Running Missing Data Validation ---")
     print("---" * 15)
 
-    initial_rows = len(df)
-    df.dropna(subset=['Title'], inplace=True)
-    rows_removed = initial_rows - len(df)
+    df_check = df.copy()
+    initial_rows = len(df_check)
+    df_check.dropna(subset=['Title'], inplace=True)
+    rows_removed = initial_rows - len(df_check)
     if rows_removed > 0:
-        print(f"Note: Removed {rows_removed} row(s) with a missing 'Title' for this validation.")
+        print(f"Note: Temporarily ignored {rows_removed} row(s) with a missing 'Title' for this validation.")
 
-    missing_data_counts = df.isnull().sum()
+    missing_data_counts = df_check.isnull().sum()
     total_missing = missing_data_counts.sum()
 
     if total_missing == 0:
         print("\n✅ Success: No missing data found in the core columns!")
     else:
-        print(f"\n⚠️ Alert: Found a total of {total_missing} missing value(s) in the file.")
+        print(f"\nAlert: Found a total of {total_missing} missing value(s) in the file.")
         print("-------------------------------------------------")
         print("Missing Data Report (per column):")
         print(missing_data_counts[missing_data_counts > 0])
         print("-------------------------------------------------")
 
-        print("\nGenerating visual report of missing data by genre...")
-        try:
-            cols_to_check = ['Book_category', 'Star_rating', 'Price', 'Quantity', 'Issue_Date']
-            missing_by_genre = df.groupby('Book_category')[cols_to_check].apply(lambda x: x.isnull().sum()).reset_index()
-            missing_by_genre = missing_by_genre.melt(id_vars='Book_category', var_name='Column', value_name='Missing_Count')
-            missing_by_genre = missing_by_genre[missing_by_genre['Missing_Count'] > 0]
-            if not missing_by_genre.empty:
-                plt.figure(figsize=(12, 8))
-                sns.barplot(data=missing_by_genre, x='Missing_Count', y='Book_category', hue='Column', palette='viridis', dodge=True)
-                plt.title('Missing Data Report by Genre', fontsize=16)
-                plt.xlabel('Number of Missing Values', fontsize=12)
-                plt.ylabel('Genre', fontsize=12)
-                plt.tight_layout()
-                plt.show()
-            else:
-                print("No missing data found in the checked columns for any specific genre.")
-        except Exception as e:
-            print(f"Could not generate visual report. Error: {e}")
-
         print("\n📖 Books with missing data:")
-        missing_rows = df[df.isnull().any(axis=1)]
+        missing_rows = df_check[df_check.isnull().any(axis=1)]
         if not missing_rows.empty:
             display(missing_rows)
         else:
             print("No rows with missing data to display.")
-    print("\n--- Data validation complete. ---")
+    print("\n--- Data Validation Complete ---")
 
 
+# --- Analysis Function 3: Financial Dashboard ---
 def generate_financial_dashboard(df):
     """
-    Analyzes the financial investment in the book collection based on the
-    provided DataFrame and generates a visual dashboard.
+    Analyzes the financial investment in the book collection.
     """
     print("\n" + "---" * 15)
-    print("--- Generating Collection Financial Dashboard ---")
+    print("--- 💰 Generating Collection Financial Dashboard ---")
     print("---" * 15)
 
-    # --- 1. Feature Engineering: Calculate Total Value ---
-    # Create a new column 'Total_Value' by multiplying the price by the quantity.
-    # We use .copy() to avoid SettingWithCopyWarning
     df_financial = df.copy()
     df_financial['Total_Value'] = df_financial['Price'] * df_financial['Quantity']
-    print("Calculated 'Total_Value' for each book (Price * Quantity).")
-
-    # --- 2. Data Aggregation ---
-    # Group by category and sum the 'Total_Value' for each.
     category_financials = df_financial.groupby('Book_category')['Total_Value'].sum().sort_values(ascending=False)
-    print("Aggregated total financial value by book category.")
+    total_collection_value = category_financials.sum()
 
-    # --- 3. Generate and Save Visualization ---
+    print(f"Calculated total collection value: ${total_collection_value:,.2f}")
+
     plt.figure(figsize=(12, 14))
     sns.barplot(y=category_financials.index, x=category_financials.values, orient='h', palette='magma')
     plt.suptitle('Total Financial Value of Inventory by Category', fontsize=18)
-    total_collection_value = category_financials.sum()
     plt.figtext(0.5, 0.94, f'Total Collection Value: ${total_collection_value:,.2f}',
                 ha='center', fontsize=14, style='italic')
     plt.xlabel('Total Value ($)', fontsize=12)
-    plt.ylabel('Book Category', fontsize=12)
-    plt.yticks(fontsize=10)
+    plt.ylabel('Book Genre', fontsize=12)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-
-    # Save the figure to a file
-    output_filename = 'collection_financial_dashboard.png'
-    plt.savefig(output_filename)
     plt.show()
-    print(f"\n--- Dashboard saved as '{output_filename}'! ---")
+    print("\n--- Financial Dashboard Complete ---")
+
+
+# --- Analysis Function 4: Quick Stats Summary ---
+def show_quick_stats(df):
+    """
+    Displays a high-level summary of the most important metrics.
+    """
+    print("\n" + "---" * 15)
+    print("--- 📈 Quick Stats Summary ---")
+    print("---" * 15)
+
+    total_books = len(df)
+    unique_titles = df['Title'].nunique()
+    total_stock = int(df['Quantity'].sum())
+    total_value = (df['Price'] * df['Quantity']).sum()
+    most_common_genre = df['Book_category'].mode()[0]
+    avg_price = df['Price'].mean()
+    avg_rating = df['Star_rating_numeric'].mean()
+
+    print(f"Total Records Analyzed:     {total_books}")
+    print(f"Number of Unique Titles:    {unique_titles}")
+    print(f"Total Items in Stock:       {total_stock}")
+    print(f"Most Common Genre:          {most_common_genre}")
+    print(f"Average Book Price:         ${avg_price:.2f}")
+    print(f"Average Star Rating:        {avg_rating:.2f} / 5.0")
+    print(f"Total Collection Value:     ${total_value:,.2f}")
+    print("---" * 15)
 
 
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == '__main__':
+    # Use the file path for your data
     file_path = '/content/newmergeddataset.csv'
 
     if not os.path.exists(file_path):
@@ -228,17 +157,17 @@ if __name__ == '__main__':
     else:
         try:
             # --- Step 1: Load and Clean the Data ONCE ---
-            df_raw = pd.read_csv(file_path, header=None, skiprows=1)
+            print("Loading and preparing data, please wait...")
+            df_raw = pd.read_csv(file_path, header=None, skiprows=1, on_bad_lines='skip')
             correct_columns = [
                 'Title', 'Book_category', 'Star_rating', 'Price', 'Stock_availability',
                 'Quantity', 'Source_File', 'col8', 'col9', 'col10', 'col11',
                 'col12', 'col13', 'col14', 'col15', 'col16', 'col17', 'Issue_Date',
                 'Return_Date', 'Random_Book_Sum'
             ]
+            df_raw = df_raw.iloc[:, :len(correct_columns)]
             df_raw.columns = correct_columns
             df_main = df_raw[['Title', 'Book_category', 'Star_rating', 'Price', 'Quantity', 'Issue_Date']].copy()
-
-            print(f"✅ File '{os.path.basename(file_path)}' read successfully. Cleaning data...")
 
             df_main['Price'] = pd.to_numeric(df_main['Price'], errors='coerce')
             df_main['Quantity'] = pd.to_numeric(df_main['Quantity'], errors='coerce')
@@ -247,16 +176,40 @@ if __name__ == '__main__':
             df_main['Issue_Date'] = pd.to_datetime(df_main['Issue_Date'], errors='coerce')
             rating_map = {'One': 1, 'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5}
             df_main['Star_rating_numeric'] = df_main['Star_rating'].map(rating_map)
-            print("✅ Data cleaning complete.")
+            print("✅ Data ready for analysis.")
 
-            # --- Step 2: Run the Main Analysis ---
-            run_full_analysis(df_main.copy())
+            # --- Step 2: Interactive Menu Loop ---
+            while True:
+                print("\n" + "=====" * 10)
+                print("          📚 Book Analysis Dashboard 📚")
+                print("=====" * 10)
+                print("Please choose an option by typing a number:")
+                print("  1. Quick Stats Summary (Recommended First!)")
+                print("  2. Full Inventory Analysis (Charts)")
+                print("  3. Check for Missing Data")
+                print("  4. View Financial Dashboard")
+                print("  5. Exit")
+                print("=====" * 10)
 
-            # --- Step 3: Run the Missing Data Check ---
-            check_missing_data(df_main.copy())
+                choice = input("Enter your choice (1-5): ")
 
-            # --- Step 4: Run the Financial Dashboard Analysis (NEW) ---
-            generate_financial_dashboard(df_main.copy())
+                if choice == '1':
+                    show_quick_stats(df_main.copy())
+                elif choice == '2':
+                    run_full_analysis(df_main.copy())
+                elif choice == '3':
+                    check_missing_data(df_main.copy())
+                elif choice == '4':
+                    generate_financial_dashboard(df_main.copy())
+                elif choice == '5':
+                    print("\nExiting the dashboard. Goodbye!")
+                    break
+                else:
+                    print("\n❌ Invalid choice. Please enter a number between 1 and 5.")
+
+                # NEW FEATURE: Pause after an option is selected
+                if choice in ['1', '2', '3', '4']:
+                    input("\nPress Enter to return to the main menu...")
 
         except Exception as e:
             print(f"An unexpected error occurred during the process: {e}")
