@@ -1,5 +1,5 @@
 
-# 📚 OST_PROJECT
+# 📚 LIBRARY MANAGER
 
 This project analyzes book data scraped from an online library and generates
 various insights and visualizations using Python (Pandas, Matplotlib, Seaborn).
