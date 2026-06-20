@@ -1,186 +1,190 @@
+# HDLint Rule Verification
 
-# 📚 LIBRARY MANAGER
+## Description
 
-This project analyzes book data scraped from an online library and generates
-various insights and visualizations using Python (Pandas, Matplotlib, Seaborn).
+HDLint is a static analysis tool for SystemVerilog and Verilog RTL designs. It enforces coding rules and design guidelines at the source level — before simulation or synthesis — catching issues such as unintended latches, multi-driven nets, illegal FSM states, unsafe clock practices, and style violations.
 
-## 🔍 Features
-- Category-wise book count visualization  
-- Average rating per category  
-- Price distribution analysis  
-- Top 10 most expensive books  
-- Stock level overview  
-- 💡 *New:* Opportunity Matrix (Price vs Rating scatter plot)
+This repository documents the verification of HDLint's rule set through a structured test suite. Each test case targets a specific rule, provides a minimal RTL trigger, and records whether the tool correctly detects the violation. The goal is to validate rule coverage, surface false negatives or misleading diagnostics, and track compatibility across ANSI and NON-ANSI port styles.
 
-## 🧠 How to Run
-```bash
-python visualize_books.py
-﻿
-# **An Analytical Framework for Library Collection Management**
+---
 
+## Status Overview
 
-## **Project Abstract and System Rationale**
+| Category | Total | Verified | Pending | Issues |
+|----------|-------|----------|---------|--------|
+| 4.1 Structural & Type | 23 | 22 | 1 | 5 |
+| 4.2 Clock | 3 | 3 | 0 | 0 |
+| 4.3 Reset | 2 | 2 | 0 | 0 |
+| 4.4 Simulation | 3 | 3 | 0 | 1 |
+| 4.5 Case / Sim-Synth | 5 | 5 | 0 | 0 |
+| 4.6 FSM | 5 | 5 | 0 | 0 |
+| 4.7 Assignment | 7 | 7 | 0 | 0 |
+| 4.8 Initialization | 1 | 1 | 0 | 0 |
+| 4.9 Top-Level | 2 | 2 | 0 | 0 |
+| 4.10 Maintainability | 2 | 2 | 0 | 0 |
+| 4.11 Style | 6 | 6 | 0 | 0 |
+| **Total** | **59** | **58** | **1** | **6** |
 
-This project presents a cohesive analytical framework designed to address the multifaceted challenges of modern library collection management. In an environment where data-driven decision-making is paramount for optimizing inventory, aligning acquisitions with user preferences, and managing budgets effectively, this system provides a foundational toolset for transforming raw inventory data into actionable intelligence. The core thesis is the demonstration of a systematic approach that converts a primary data repository into a suite of analytical assets, offering both granular views for specific queries and high-level aggregated metrics for strategic planning.
+> **Legend** —  Verified ·  Pending ·  Issue ·  Disabled by default
 
-Libraries and bookstores continually face the challenge of balancing the breadth, depth, and relevance of their collections against significant physical and financial constraints. This framework directly addresses this problem by providing the means to quantify key performance indicators of the collection, including popularity (via star ratings), cost-effectiveness (via price), and availability (via stock quantity).
+---
 
-The structured nature of this project facilitates a fundamental shift in management philosophy from a reactive to a proactive stance. A simple inventory list allows a manager to react to a specific query, such as locating a single book. In contrast, this system provides pre-computed reports like average ratings per category and lists of high-stock items. These assets do not merely answer existing questions; they are designed to prompt new, more strategic inquiries. For instance, a manager might be led to ask, "Why is our 'History' category rated lower on average than 'Science Fiction'?" or "What is the strategic justification for maintaining such a high quantity of these specific titles?" This process encourages an exploratory, data-centric approach, enabling staff to identify trends, opportunities, and potential inefficiencies before they escalate into significant operational issues.
+## 4.1 — Structural & Type Rules
 
-## **Architectural Overview and Data Workflow**
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.1.1 | ENUM-DUP | Two enum members share the same encoded value |   | — |
+| 4.1.2 | ENUM-RANGE | Enum member overflows or contains X/Z bits |   | — |
+| 4.1.3 | ENUM-WIDTH | Enum literal width mismatches base-type width |   | — |
+| 4.1.4 | PARAM-NOINIT | Parameter or localparam not initialized |   | NON-ANSI only; fails on ANSI format |
+| 4.1.5 | PARAM-OVERRIDE | Duplicate, mixed, or missing parameter override |   | NON-ANSI only |
+| 4.1.6 | STRUCT-CASE-INCOMPLETE | Case without full coverage in combinational context | Detects only when `casez` is used |
+| 4.1.7 | STRUCT-CASE-OVERLAP | Overlapping or unreachable case item |   | — |
+| 4.1.8 | STRUCT-COMB-OVERLOOP | Signal combinationally depends on itself |   | — |
+| 4.1.9 | STRUCT-INPUT-ASSIGN | Input port driven from inside the module |   | Tool reports *Coercion* not *ASSIGN* |
+| 4.1.10 | STRUCT-LATCH | Unintended latch inferred |   | — |
+| 4.1.11 | STRUCT-MULTIDRIVEN | Net driven by more than one driver |   | Reported as *duplicate definition* |
+| 4.1.12 | STRUCT-PORT-WIDTH | Port width mismatch at instantiation |   | — |
+| 4.1.13 | STRUCT-RANGE | Constant index or part-select out of declared bounds |   | — |
+| 4.1.14 | STRUCT-UNDRIVEN | Net/variable/output exposed but never driven |   | — |
+| 4.1.15 | STRUCT-WIDTH-TRUNC | Value implicitly narrowed, dropping high-order bits |   | — |
+| 4.1.16 | DEAD-ASSIGN | Signal assigned but never read |   | — |
+| 4.1.17 | STRUCT-CASE-UNREACHABLE | Case item can never match the selector |   | — |
+| 4.1.18 | STRUCT-NONPOS-WIDTH | Part-select width or replication count resolves to zero/negative |   | Reported as *Range Selected Reversed* |
+| 4.1.19 | STRUCT-PIN-MISSING | Instance leaves a port unconnected |   | — |
+| 4.1.20 | STRUCT-SIGN-MIX | Implicit signedness change or mixed-sign comparison |   | — |
+| 4.1.21 | STRUCT-UNUSED | Unused signal, port, or parameter |   | — |
+| 4.1.22 | STRUCT-WIDTH-EXPAND | Operand implicitly widened |   | — |
+| 4.1.23 | STRUCT-ZERO-WIDTH | Declared vector elaborates to zero/negative width |   | — |
 
-The system is built upon a deliberate and structured data processing pipeline, which ensures a clear separation between the foundational data source and the derived analytical products. This architecture is a cornerstone of sound data management, preserving the integrity of the raw data while allowing for the flexible and independent generation of various reports and views tailored to different analytical needs. The conceptual model illustrates a clear, unidirectional flow of information from the primary repository through a processing engine to the final generated assets.
+---
 
-A high-level visualization of this data workflow is as follows:
+## 4.2 — Clock Rules
 
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.2.1 | CLK-001 | Clock net driven by combinational logic outside an approved cell |   | — |
+| 4.2.2 | CLK-002 | Clock net read in a non-clock (data) context |   | — |
+| 4.2.3 | CLK-004 | Clock used on both posedge and negedge (single-edge policy) |   | — |
 
+---
 
-+--------------------------------+\
-\
-| Primary Data Repository |\
-| (books\_scraped.csv) |\
-+--------------------------------+\
-|\
-`                 `v\
-+--------------------------------+\
-\
-| Data Processing & Analysis |\
-| (Conceptual Engine: |\
-| Filtering, Aggregation) |\
-+--------------------------------+\
-|\
-`       `+-------------------------+\
-\
-| |\
-`       `v                         v\
-+-------------------------+   +--------------------------+\
-\
-| Generated Asset Type 1: | | Generated Asset Type 2: |\
-| Curated Data Subsets | | Aggregated Insights |\
-| (.csv files) | | (.txt files) |\
-+-------------------------+   +--------------------------+
+## 4.3 — Reset Rules
 
-This architectural design implicitly defines two distinct tiers of user access, which serves to democratize the availability of data-driven insights across the organization. The primary data repository, books\_scraped.csv, is the most complex asset, requiring a degree of technical proficiency—such as the use of spreadsheet software with advanced functions, a database query language, or a programming language like Python or R—for effective analysis. This tier is intended for power users, such as data analysts or technical librarians, who need to perform bespoke, deep-dive investigations.
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.3.1 | RST-002 | Async reset must be active-low when policy `reset_style async_active_low` is set |   | — |
+| 4.3.2 | RST-006 | Single flop has both async set and async reset |   | — |
 
-Conversely, the generated .csv and .txt files represent a second tier of access. These assets are pre-processed, simplified, and formatted for immediate consumption. They can be readily opened and understood by non-technical stakeholders, such as library managers or department heads, using universally available tools like a standard text editor or a basic spreadsheet program. This thoughtful design ensures that crucial operational insights are not confined to a technical team but are accessible to the end-users who are responsible for making day-to-day strategic decisions. This makes the framework significantly more practical and valuable in a real-world operational context.
+---
 
-## **Core Data Repository: books\_scraped.csv**
+## 4.4 — Simulation Rules
 
-The foundational component of this analytical framework is the books\_scraped.csv file. This dataset serves as the "single source of truth," representing a complete and static snapshot of the library's book inventory at the time of its export. The structural integrity and comprehensiveness of this core repository are of critical importance, as the validity and reliability of all subsequently derived reports and views are entirely dependent upon it.
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.4.1 | SIM-001 | Sequential NB assignment lacks a shoot-through delay |   | Requires `set_policy shoot_through_delay required` |
+| 4.4.2 | SIM-002 | Physical delay on a clock-path assignment |   | Not detected; fires as CLK-002 instead |
+| 4.4.3 | SIM-003 | Delay present when shoot-through delay is forbidden |   | Requires `set_policy shoot_through_delay forbidden` |
 
-### **Data Schema and Field Dictionary**
+---
 
-A formal data dictionary is essential for ensuring the accurate interpretation and utilization of the dataset. It provides a definitive guide for any user, technical or otherwise, detailing the structure, data type, and semantic meaning of each field. This level of documentation is fundamental to reproducible and reliable analysis.
+## 4.5 — Case & Simulation-Synthesis Rules
 
-- **Title**
-  - **Data Type (Inferred):** String (UTF-8)
-  - **Description:** The official title of the book.
-  - **Example Value(s):** A Light in the Attic
-  - **Notes & Considerations:** Assumed to be unique, but uniqueness is not guaranteed without a primary key like an ISBN.
-- **Book\_category**
-  - **Data Type (Inferred):** Categorical (String)
-  - **Description:** The genre or classification assigned to the book.
-  - **Example Value(s):** Poetry, Fiction
-  - **Notes & Considerations:** A controlled vocabulary is likely used, which is beneficial for consistent aggregation.
-- **Star\_rating**
-  - **Data Type (Inferred):** Ordinal (Categorical)
-  - **Description:** A customer-provided quality rating, on a discrete five-point scale.
-  - **Example Value(s):** Three, Five
-  - **Notes & Considerations:** Stored as text; requires conversion to a numeric type (e.g., 1-5) for quantitative analysis such as calculating averages.
-- **Price**
-  - **Data Type (Inferred):** Float
-  - **Description:** The retail price of the book.
-  - **Example Value(s):** 51.77, 22.65
-  - **Notes & Considerations:** Currency is not specified but is assumed to be consistent across all records (e.g., GBP or USD).
-- **Stock**
-  - **Data Type (Inferred):** Categorical (String)
-  - **Description:** A high-level indicator of the book's availability status.
-  - **Example Value(s):** In stock
-  - **Notes & Considerations:** This field appears redundant given the Quantity field. It may be a legacy field or intended for quick human-readable checks.
-- **Quantity**
-  - **Data Type (Inferred):** Integer
-  - **Description:** The exact number of units currently available in inventory.
-  - **Example Value(s):** 22, 1
-  - **Notes & Considerations:** This is the primary field for quantitative stock analysis and inventory management.
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.5.1 | CASE-001 | `full_case` / `parallel_case` pragma present |   | Flags pragma only when it can affect synthesis |
+| 4.5.2 | CASE-002 | `casex` used in design |   | Also visible at compile time |
+| 4.5.3 | SIMSYN-001 | Case-equality (`===` / `!==`) in synthesizable code |   | Verified for both operators |
+| 4.5.4 | SIMSYN-002 | `initial` block in synthesizable RTL |   | — |
+| 4.5.5 | CASE-003 | `casez` used outside approved decoder patterns |   | — |
 
-## **Generated Analytical Assets**
+---
 
-The raw data contained within books\_scraped.csv is processed to produce two distinct categories of analytical assets: curated data subsets that provide focused views into specific segments of the collection, and aggregated reports that offer a high-level strategic overview.
+## 4.6 — FSM Rules
 
-### **Part I: Curated Data Subsets (Filtered Views)**
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.6.1 | FSM-001 | FSM state variable not enum-typed |   | Disabled by default |
+| 4.6.2 | FSM-002 | FSM deadlock — state cannot return to reset state |   | — |
+| 4.6.3 | FSM-003 | Unreachable FSM state |   | — |
+| 4.6.4 | FSM-004 | Case over enum without full coverage |   | Disabled by default |
+| 4.6.5 | FSM-005 | FSM terminal state with no exit transition |   | Same RTL trigger as FSM-003 |
 
-These .csv files act as specialized lenses, allowing a user to examine specific, high-interest segments of the main collection without the need for manual filtering. Each file is a purpose-built tool designed to answer a predefined set of analytical questions.
+---
 
-- **fiction\_books.csv**: This view is generated by filtering the primary dataset where the Book\_category field is 'Fiction'. Its purpose is to enable a deep-dive analysis of what is often a library's largest or most circulated collection. It facilitates fiction-specific inquiries, such as identifying the average price or rating *within* the fiction genre, which can then be benchmarked against library-wide metrics.
-- **cheap\_books.csv**: This subset is generated by filtering the primary dataset to include books where the Price is below a predefined threshold (e.g., less than 20.00 currency units). This report is a practical tool for identifying titles for promotional events, such as a "Bargain Books" sale, or for assisting budget-conscious patrons and acquisition managers. The specific price threshold is a key parameter that can be adjusted to suit different analytical needs.
-- **high\_stock\_books.csv**: This list is generated by filtering for records where the Quantity field exceeds a specified threshold (e.g., more than 18 units). It serves as a critical inventory management tool, directly flagging potentially overstocked items that incur holding costs and occupy valuable shelf space. Analysis of this list can reveal either blockbuster titles that are intentionally kept in high supply to meet demand or titles that are underperforming and may need to be de-accessioned.
-- **top10\_expensive.csv**: This report is created by sorting the entire dataset by Price in descending order and selecting the top ten records. Its primary function is for financial oversight and asset management. It identifies the most valuable individual assets in the collection, which is crucial information for insurance valuations, budgeting for the replacement of high-cost items, and understanding where a significant portion of the acquisition budget is concentrated.
+## 4.7 — Assignment Rules
 
-### **Part II: Aggregated Categorical Insights (Summary Reports)**
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.7.1 | ASGN-001 | Signal assigned in multiple `always` blocks |   | — |
+| 4.7.2 | ASGN-002 | Blocking assignment inside a sequential block |   | — |
+| 4.7.3 | ASGN-003 | Non-blocking assignment inside a combinational block |   | — |
+| 4.7.4 | ASGN-004 | Mixed blocking and non-blocking assignments to one signal |   | — |
+| 4.7.5 | ASGN-005 | Non-blocking assignment to a clock net |   | — |
+| 4.7.6 | ASGN-006 | Procedural assignment to a net |   | — |
+| 4.7.7 | ASGN-007 | Legacy `always` used where `always_comb`/`always_ff` is available |   | — |
 
-These .txt files function as high-level dashboards, providing a strategic overview of the collection's composition and performance by summarizing key metrics at the category level.
+---
 
-- **books\_per\_category.txt**: This report provides a simple count of titles within each Book\_category. Its strategic value lies in assessing the balance and diversity of the collection. It can immediately reveal if certain genres are over- or under-represented, thereby guiding future acquisition strategies to fill collection gaps or further strengthen popular areas.
-- **avg\_price\_per\_category.txt**: This file details the mean Price for all books within each category. It is a vital tool for financial planning and budgeting, highlighting which genres are the most expensive to build and maintain. This information allows for more accurate forecasting of acquisition costs by department.
-- **avg\_quantity\_per\_category.txt**: This report contains the average stock Quantity for each book category. It serves as an indicator of inventory policy at a macro level. A high average quantity in a category might suggest it is highly popular and stocked to meet demand, or it could be a red flag for systemic over-purchasing and poor circulation.
-- **avg\_rating\_per\_category.txt**: This file lists the average Star\_rating (after conversion to a numeric scale) for books within each category. This metric is a key performance indicator of collection quality and patron satisfaction. It helps curators identify which genres are well-received by the community and which may require a quality review or an infusion of new, more appealing titles.
+## 4.8 — Initialization Rules
 
-The true analytical power of these aggregated reports is realized when they are synthesized. A single metric in isolation provides limited information, but their combination can lead to complex, evidence-based conclusions. For example, consider a scenario where the reports show that the "History" category has a high average price, a low average rating, and a high average stock quantity. Taken together, these data points paint a clear and concerning picture: the library is investing a significant amount of capital in history books that patrons do not appear to enjoy, resulting in an overstock of low-circulating, high-cost assets. This synthesized insight leads directly to an actionable recommendation: temporarily freeze acquisitions in the History category, conduct a thorough review of the existing collection for potential de-accessioning (weeding), and investigate the root cause of the low ratings. This demonstrates how the system moves beyond simple reporting to enable sophisticated, strategic decision-making.
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.8.1 | INIT-002 | `initial` block sets a signal also driven by an `always` block |   | ANSI + NON-ANSI |
 
-## **Application Scenarios and Usage Guidelines**
+---
 
-The utility of this analytical framework is best understood through its application by different stakeholders within a library system. The following personas and workflows illustrate how the generated assets can be used to address specific, real-world challenges.
+## 4.9 — Top-Level Rules
 
-### **Persona 1: The Inventory Manager**
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.9.1 | TOP-001 | Structure-only module contains `always` or `initial` blocks |   | ANSI + NON-ANSI |
+| 4.9.2 | TOP-002 | No top module declared with multiple modules present |   | ANSI + NON-ANSI |
 
-- **Objective**: To optimize stock levels, manage physical shelf space, and minimize holding costs.
-- **Workflow**: The manager would begin by reviewing high\_stock\_books.csv to identify specific, individual titles that are potentially overstocked. To determine if this is an isolated issue or a broader trend, they would then consult avg\_quantity\_per\_category.txt. Finally, they would cross-reference these findings with avg\_rating\_per\_category.txt. A category with both high average stock and low average ratings becomes a high-priority candidate for a stock reduction initiative.
+---
 
-### **Persona 2: The Collection Curator/Acquisitions Librarian**
+## 4.10 — Maintainability Rules
 
-- **Objective**: To improve the overall quality, relevance, and balance of the library's collection.
-- **Workflow**: The curator's process would start with books\_per\_category.txt to identify under-represented genres that may require development. Next, an analysis of avg\_rating\_per\_category.txt would reveal which categories are highly rated by patrons—suggesting areas of strength to build upon—and which are poorly rated, indicating a need for new, higher-quality acquisitions. To address collection gaps in a budget-conscious manner, the curator could then use cheap\_books.csv to find affordable titles.
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.10.1 | MAINT-001 | Excessive `always` blocks in a single file |   | ANSI + NON-ANSI |
+| 4.10.2 | MAINT-002 | File exceeds maximum line count |   | Disabled by default |
 
-### **Persona 3: The Financial Analyst/Library Director**
+---
 
-- **Objective**: To oversee the budget, manage financial assets, and ensure fiscal responsibility.
-- **Workflow**: The director would use top10\_expensive.csv to understand the library's most significant single-item investments for insurance and asset tracking purposes. To plan for the future, they would review avg\_price\_per\_category.txt to forecast acquisition costs for different departments, enabling more accurate and equitable budget allocations for the upcoming fiscal year.
+## 4.11 — Style Rules
 
-### **Persona 4: The Data Analyst/Technical User**
+| ID | Rule | Description | Status | Notes |
+|----|------|-------------|--------|-------|
+| 4.11.1 | STYLE-EXPLICIT-PORT | Ports must be connected by name, not by position |   | ANSI + NON-ANSI |
+| 4.11.2 | STYLE-GENERATE-LABEL | All `generate` blocks must have a label |   | ANSI + NON-ANSI |
+| 4.11.3 | STYLE-HEADER | File must begin with a descriptive comment header |   | ANSI + NON-ANSI |
+| 4.11.4 | STYLE-NAME-MODULE-FILE | Module name must match the filename |   | ANSI + NON-ANSI |
+| 4.11.5 | STYLE-NAME-PARAM | Parameter names must be ALL_CAPS | . | ANSI + NON-ANSI |
+| 4.11.6 | STYLE-ONE-MODULE | Only one module allowed per file |   | ANSI + NON-ANSI |
 
-- **Objective**: To perform custom, in-depth analysis beyond the scope of the pre-generated reports.
-- **Workflow**: This user would bypass the generated assets and work directly with the primary data repository, books\_scraped.csv. The file can be imported into any standard data analysis environment. For example, using the Python Pandas library, the analyst could quickly load the data and generate comprehensive descriptive statistics with a few lines of code:\
-  Python\
-  import pandas as pd\
-\
-  # Load the core dataset into a DataFrame\
-  df = pd.read\_csv('books\_scraped.csv')\
-\
-  # Generate descriptive statistics for numeric columns\
-  print(df.describe())\
-\
-  This demonstrates the project's extensibility and provides a foundation for more advanced and customized quantitative analysis.
+---
 
-## **Conclusion and Recommendations for Future Development**
+## Rules Requiring Manual Activation
 
+The following rules are disabled by default or require a policy directive to fire.
 
-### **Summary of Contributions**
+| Rule | Action Required |
+|------|----------------|
+| FSM-001 | Enable FSM enum-type checking in tool configuration |
+| FSM-004 | Enable FSM full-case coverage checking |
+| MAINT-002 | Enable file line-count limit |
+| SIM-001 | Add `set_policy shoot_through_delay required` |
+| SIM-003 | Add `set_policy shoot_through_delay forbidden` |
 
-This project successfully establishes a robust, multi-faceted analytical framework for library collection management. It transforms a raw inventory dataset into a structured suite of analytical assets suitable for a range of stakeholders. The value of the system lies in its structured approach, the clarity of its outputs, and its direct applicability to strategic, financial, and operational decision-making within a library setting. By separating raw data from derived insights, it creates an accessible and powerful tool for evidence-based management.
+---
 
-### **Discussion of Limitations**
+## Compatibility Notes
 
-A critical evaluation of the project reveals several limitations that should be acknowledged.
+Rules marked **NON-ANSI only** do not function correctly with ANSI-style port declarations.
 
-- **Data Scope**: The dataset is a static snapshot and does not reflect real-time inventory changes. A production-level system would require a dynamic connection to the library's live management system.
-- **Data Richness**: The current schema lacks several important fields, such as Author, Publisher, Publication Year, and ISBN. The absence of this data limits the depth of possible analysis, preventing inquiries into author performance, publisher trends, or the age of the collection.
-- **Data Quality**: The redundancy between the Stock (categorical) and Quantity (integer) fields is a minor data quality issue. In a future iteration, the schema should be standardized to eliminate such redundancies.
-
-### **Roadmap for Future Enhancements**
-
-To build upon the current framework, several enhancements are recommended:
-
-- **Automation Pipeline**: Develop scripts (e.g., in Python or R) to fully automate the data processing workflow. This would allow the suite of reports to be regenerated on a scheduled basis (e.g., daily or weekly) whenever the core database is updated, ensuring that decision-makers always have access to current information.
-- **Interactive Visualization Dashboard**: Transition from static .csv and .txt files to a dynamic, web-based dashboard using tools such as Tableau, Power BI, or open-source libraries like Dash or Streamlit. An interactive dashboard would empower users to filter, sort, and visualize the data in real-time, offering a far richer and more intuitive user experience.
-- **Predictive Analytics**: Incorporate historical borrowing data to enable more advanced analytics. A demand forecasting model could be developed to predict which new books are likely to be popular, thereby optimizing purchasing decisions. Furthermore, a recommendation engine could be built to provide personalized suggestions to patrons.
-- **Sentiment Analysis**: Augment the dataset with qualitative data, such as user reviews or book summaries. Natural Language Processing (NLP) techniques could then be applied to perform sentiment analysis, extracting more nuanced insights into patron opinions that go beyond a simple five-star rating.
+| Rule | Compatibility |
+|------|--------------|
+| PARAM-NOINIT (4.1.4) | NON-ANSI only |
+| PARAM-OVERRIDE (4.1.5) | NON-ANSI only |
+| All others | ANSI + NON-ANSI |
